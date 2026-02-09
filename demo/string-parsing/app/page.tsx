@@ -109,6 +109,16 @@ export default function Home() {
               Portals, Suspense fallback, Error Boundary
             </p>
           </ScenarioCard>
+
+          <ScenarioCard href="/12-usage-driven-data">
+            <h2 className="mb-2 text-xl font-semibold text-gray-900 group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
+              12. Usage-driven Data
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Arrays/objects are extracted when actually rendered in JSX;
+              href/src are not translated by default
+            </p>
+          </ScenarioCard>
         </div>
 
         <div className="mt-12 rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">

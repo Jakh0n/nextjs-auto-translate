@@ -332,6 +332,201 @@
         }
       }
     },
+    "app/12-usage-driven-data/components/ArrayIndexInJsx.tsx": {
+      "entries": {
+        "program/body0/declaration/body/body0/declarations0_arr_0": {
+          "content": {
+            "en": "Playground",
+            "ru": "Песочница"
+          },
+          "hash": "a5fedb0f74accd822564fb0aa51aff1e"
+        },
+        "program/body0/declaration/body/body1/argument/children1/children1": {
+          "content": {
+            "en": "const tabs = ['Playground','Examples','Settings'];\n          <element:br></element:br>\n          <span>{tabs[0]}</span>",
+            "ru": "const tabs = ['Площадка','Примеры','Настройки'];\n          <element:br></element:br>\n          <span>{tabs[0]}</span>"
+          },
+          "hash": "44edfdb38be92a2fcc70ac417bb5a3f8"
+        },
+        "program/body0/declaration/body/body1/argument/children3/children1": {
+          "content": {
+            "en": "First tab: <element:span></element:span>",
+            "ru": "Первая вкладка: <element:span></element:span>"
+          },
+          "hash": "0a2eda6ec20e4d6d750d886560574cff"
+        }
+      }
+    },
+    "app/12-usage-driven-data/components/ArrayOfObjectsMap.tsx": {
+      "entries": {
+        "program/body1/declaration/body/body0/declarations0/init/elements0/properties0_obj_name": {
+          "content": {
+            "en": "New York",
+            "ru": "Нью-Йорк"
+          },
+          "hash": "87809c954948d8a20507bee3648281b3"
+        },
+        "program/body1/declaration/body/body0/declarations0/init/elements1/properties0_obj_name": {
+          "content": {
+            "en": "Paris",
+            "ru": "Париж"
+          },
+          "hash": "e20d37a5d7fcc4c35be6fc18a8e71bfa"
+        },
+        "program/body1/declaration/body/body0/declarations0/init/elements0/properties1_obj_country": {
+          "content": {
+            "en": "USA",
+            "ru": "США"
+          },
+          "hash": "f75d91cdd36b85cc4a8dfeca4f24fa14"
+        },
+        "program/body1/declaration/body/body0/declarations0/init/elements1/properties1_obj_country": {
+          "content": {
+            "en": "France",
+            "ru": "Франция"
+          },
+          "hash": "0309a6c666a7a803fdb9db95de71cf01"
+        },
+        "program/body1/declaration/body/body1/argument/children1/children1": {
+          "content": {
+            "en": "const cities = [{ name: \"New York\", country: \"USA\", mapLocation: \"https://...\" }]\n          <element:br></element:br>\n          cities.map(city => <a href={city.mapLocation}>{city.name} ({city.country})</a>)",
+            "ru": "const cities = [{ name: \"Нью-Йорк,\" country: \"США,\" mapLocation: \"https://...\" }]\n          <element:br></element:br>\n          cities.map (город => <a href={город.mapLocation}>{город.name} ({город.country}) </a>)"
+          },
+          "hash": "1444fdd055cd30d9f4b00e142ef1b27b"
+        },
+        "program/body1/declaration/body/body1/argument/children3/children1/children1/expression/arguments0/body/children3": {
+          "content": {
+            "en": "href is NOT translated: <element:span></element:span>",
+            "ru": "href не переводится: <element:span></element:span>"
+          },
+          "hash": "e0dc806798b2c5d4a1df66ae84388b00"
+        }
+      }
+    },
+    "app/12-usage-driven-data/components/ObjectPropertyInJsx.tsx": {
+      "entries": {
+        "program/body0/declaration/body/body0/declarations0/init/properties0_obj_title": {
+          "content": {
+            "en": "Profile",
+            "ru": "Профиль"
+          },
+          "hash": "cce99c598cfdb9773ab041d54c3d973a"
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties1_obj_subtitle": {
+          "content": {
+            "en": "These strings are stored in an object.",
+            "ru": "Данные строки хранятся в объекте."
+          },
+          "hash": "ffd1263b4e64d83b5387cbe2b7e4d62c"
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties2_obj_debugKey": {
+          "content": {
+            "en": "DO_NOT_TRANSLATE_THIS_KEY",
+            "ru": "НЕ_ПЕРЕВОДИТЬ_ЭТОТ_КЛЮЧ"
+          },
+          "hash": "f01b95fd14985cad79bd52289f0c873b"
+        },
+        "program/body0/declaration/body/body1/argument/children1/children1": {
+          "content": {
+            "en": "const ui = { title: \"Profile\", subtitle: \"...\" };\n          <element:br></element:br>\n          <h3>{ui.title}</h3> <p>{ui.subtitle}</p>",
+            "ru": "const ui = { title: \"Профиль,\" subtitle: ...\"\" };\n          <element:br></element:br>\n          <h3>{ui.title}</h3> <p>{ui.subtitle}</p>"
+          },
+          "hash": "795f57486ebaec8a0e42a23e70ebf24e"
+        },
+        "program/body0/declaration/body/body1/argument/children3/children5": {
+          "content": {
+            "en": "debugKey (should not be translated unless rendered): \n          <element:span></element:span>",
+            "ru": "debugKey (не переводить, если не отображается):\n          <element:span></element:span>"
+          },
+          "hash": "0ac0543361726c9e6029574a725bdda2"
+        }
+      }
+    },
+    "app/12-usage-driven-data/components/VisibleAttrFromObject.tsx": {
+      "entries": {
+        "program/body0/declaration/body/body0/declarations0/init/properties0_obj_imageAlt": {
+          "content": {
+            "en": "Globe icon",
+            "ru": "Значок глобуса"
+          },
+          "hash": "2af077e93468b3fb9a929692fb0833ac"
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties1_obj_inputPlaceholder": {
+          "content": {
+            "en": "Enter your name",
+            "ru": "Введите своё имя"
+          },
+          "hash": "fd2f820569d83784238e1027897b463e"
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties2_obj_tooltipTitle": {
+          "content": {
+            "en": "This title attribute is visible on hover",
+            "ru": "Этот атрибут title отображается при наведении курсора"
+          },
+          "hash": "67a19231eb77a61f87b091e99909e215"
+        },
+        "program/body0/declaration/body/body1/argument/children1/children1": {
+          "content": {
+            "en": "<img alt={ui.imageAlt} src={ui.src} />\n          <element:br></element:br>\n          <input placeholder={ui.inputPlaceholder} />\n          <element:br></element:br>\n          <a href={ui.href} title={ui.tooltipTitle}>Link</a>",
+            "ru": "<img alt={ui.imageAlt} src={ui.src} />\n          <element:br></element:br>\n          <input placeholder={ui.inputPlaceholder} />\n          <element:br></element:br>\n          <a href={ui.href} title={ui.tooltipTitle}>Ссылка</a>"
+          },
+          "hash": "3160699dcdc99464b69ee4a7589d1d5b"
+        },
+        "program/body0/declaration/body/body1/argument/children3/children1/children3": {
+          "content": {
+            "en": "Link",
+            "ru": "Ссылка"
+          },
+          "hash": "97e7c9a7d06eac006a28bf05467fcc8b"
+        },
+        "program/body0/declaration/body/body1/argument/children3/children3": {
+          "content": {
+            "en": "href/src are NOT translated by default: \n          <element:span></element:span> · \n          <element:span></element:span>",
+            "ru": "href/src по умолчанию НЕ переводятся:\n          <element:span></element:span> ·\n          <element:span></element:span>"
+          },
+          "hash": "ed08e22346b8ac31969c1b909f38bdb7"
+        }
+      }
+    },
+    "app/12-usage-driven-data/page.tsx": {
+      "entries": {
+        "program/body4/declaration/body/body0/argument/children1/children1": {
+          "content": {
+            "en": "12. Usage-driven Data (Arrays & Objects)",
+            "ru": "12. Данные, основанные на использовании (массивы и объекты)"
+          },
+          "hash": "89ea0178a75bbfcbf1bdd4c662d38c97"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children1/children1": {
+          "content": {
+            "en": "12.1 Object property rendered in JSX",
+            "ru": "12.1 Свойство объекта, отрендеренное в JSX"
+          },
+          "hash": "29e3686d31be3960da63e4af72867fb5"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children3/children1": {
+          "content": {
+            "en": "12.2 Array indexing rendered in JSX",
+            "ru": "12.2 Индексация массива в JSX"
+          },
+          "hash": "5f2b251f8bf8b1d39ceac30fa9b35782"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children5/children1": {
+          "content": {
+            "en": "12.3 Array of objects rendered in map()",
+            "ru": "12.3 Массив объектов, отрендеренных в методе map ()"
+          },
+          "hash": "2120e8b10dd169d875a08961ca05ca2c"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children7/children1": {
+          "content": {
+            "en": "12.4 Visible attributes from objects (translated), href/src (not)",
+            "ru": "12.4 Видимые атрибуты объектов (переведены), href/src (не переведены)"
+          },
+          "hash": "476809ad3d3d0a1d5f265014e0393c2f"
+        }
+      }
+    },
     "app/2-expressions/components/ConditionalExpression.tsx": {
       "entries": {
         "program/body1/declaration/body/body1/argument/children1/children1": {
@@ -2175,6 +2370,20 @@
             "ru": "Порталы, резервный контент для Suspense, Граница обработки ошибок"
           },
           "hash": "4fe2f214967fca9b735b5b28a15f60aa"
+        },
+        "program/body1/declaration/body/body0/argument/children1/children3/children21/children1": {
+          "content": {
+            "en": "12. Usage-driven Data",
+            "ru": "12. Данные, основанные на использовании"
+          },
+          "hash": "c2fba88057ab4b65a11b200417b16bec"
+        },
+        "program/body1/declaration/body/body0/argument/children1/children3/children21/children3": {
+          "content": {
+            "en": "Arrays/objects are extracted when actually rendered in JSX; href/src\n              are not translated by default",
+            "ru": "Массивы/объекты извлекаются при фактическом рендеринге в JSX; href/src\n              по умолчанию не переводятся"
+          },
+          "hash": "75f365ce898831fae6f283a3f4a0cd85"
         },
         "program/body1/declaration/body/body0/argument/children1/children5/children1": {
           "content": {

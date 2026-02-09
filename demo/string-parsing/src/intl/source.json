@@ -530,6 +530,292 @@
         }
       }
     },
+    "app/12-usage-driven-data/components/ArrayIndexInJsx.tsx": {
+      "scopes": {
+        "program/body0/declaration/body/body0/declarations0_arr_0": {
+          "type": "text",
+          "hash": "a5fedb0f74accd822564fb0aa51aff1e",
+          "context": "Array literal element used in UI: tabs[0]",
+          "skip": false,
+          "overrides": {},
+          "content": "Playground"
+        },
+        "program/body0/declaration/body/body1/argument/children1/children1": {
+          "type": "element",
+          "hash": "44edfdb38be92a2fcc70ac417bb5a3f8",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "const tabs = ['Playground','Examples','Settings'];\n          <element:br></element:br>\n          <span>{tabs[0]}</span>",
+          "elementProps": [
+            {
+              "tag": "br",
+              "props": {}
+            }
+          ]
+        },
+        "program/body0/declaration/body/body1/argument/children3/children1": {
+          "type": "element",
+          "hash": "0a2eda6ec20e4d6d750d886560574cff",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "First tab: <element:span></element:span>",
+          "elementProps": [
+            {
+              "tag": "span",
+              "props": {
+                "className": "font-semibold"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "app/12-usage-driven-data/components/ArrayOfObjectsMap.tsx": {
+      "scopes": {
+        "program/body1/declaration/body/body0/declarations0/init/elements0/properties0_obj_name": {
+          "type": "text",
+          "hash": "87809c954948d8a20507bee3648281b3",
+          "context": "Array-of-objects prop used in UI: cities[*].name",
+          "skip": false,
+          "overrides": {},
+          "content": "New York"
+        },
+        "program/body1/declaration/body/body0/declarations0/init/elements1/properties0_obj_name": {
+          "type": "text",
+          "hash": "e20d37a5d7fcc4c35be6fc18a8e71bfa",
+          "context": "Array-of-objects prop used in UI: cities[*].name",
+          "skip": false,
+          "overrides": {},
+          "content": "Paris"
+        },
+        "program/body1/declaration/body/body0/declarations0/init/elements0/properties1_obj_country": {
+          "type": "text",
+          "hash": "f75d91cdd36b85cc4a8dfeca4f24fa14",
+          "context": "Array-of-objects prop used in UI: cities[*].country",
+          "skip": false,
+          "overrides": {},
+          "content": "USA"
+        },
+        "program/body1/declaration/body/body0/declarations0/init/elements1/properties1_obj_country": {
+          "type": "text",
+          "hash": "0309a6c666a7a803fdb9db95de71cf01",
+          "context": "Array-of-objects prop used in UI: cities[*].country",
+          "skip": false,
+          "overrides": {},
+          "content": "France"
+        },
+        "program/body1/declaration/body/body1/argument/children1/children1": {
+          "type": "element",
+          "hash": "1444fdd055cd30d9f4b00e142ef1b27b",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "const cities = [{ name: \"New York\", country: \"USA\", mapLocation: \"https://...\" }]\n          <element:br></element:br>\n          cities.map(city => <a href={city.mapLocation}>{city.name} ({city.country})</a>)",
+          "elementProps": [
+            {
+              "tag": "br",
+              "props": {}
+            }
+          ]
+        },
+        "program/body1/declaration/body/body1/argument/children3/children1/children1/expression/arguments0/body/children3": {
+          "type": "element",
+          "hash": "e0dc806798b2c5d4a1df66ae84388b00",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "href is NOT translated: <element:span></element:span>",
+          "elementProps": [
+            {
+              "tag": "span",
+              "props": {
+                "className": "font-mono"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "app/12-usage-driven-data/components/ObjectPropertyInJsx.tsx": {
+      "scopes": {
+        "program/body0/declaration/body/body0/declarations0/init/properties0_obj_title": {
+          "type": "text",
+          "hash": "cce99c598cfdb9773ab041d54c3d973a",
+          "context": "Object literal prop used in UI: ui.title",
+          "skip": false,
+          "overrides": {},
+          "content": "Profile"
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties1_obj_subtitle": {
+          "type": "text",
+          "hash": "ffd1263b4e64d83b5387cbe2b7e4d62c",
+          "context": "Object literal prop used in UI: ui.subtitle",
+          "skip": false,
+          "overrides": {},
+          "content": "These strings are stored in an object."
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties2_obj_debugKey": {
+          "type": "text",
+          "hash": "f01b95fd14985cad79bd52289f0c873b",
+          "context": "Object literal prop used in UI: ui.debugKey",
+          "skip": false,
+          "overrides": {},
+          "content": "DO_NOT_TRANSLATE_THIS_KEY"
+        },
+        "program/body0/declaration/body/body1/argument/children1/children1": {
+          "type": "element",
+          "hash": "795f57486ebaec8a0e42a23e70ebf24e",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "const ui = { title: \"Profile\", subtitle: \"...\" };\n          <element:br></element:br>\n          <h3>{ui.title}</h3> <p>{ui.subtitle}</p>",
+          "elementProps": [
+            {
+              "tag": "br",
+              "props": {}
+            }
+          ]
+        },
+        "program/body0/declaration/body/body1/argument/children3/children5": {
+          "type": "element",
+          "hash": "0ac0543361726c9e6029574a725bdda2",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "debugKey (should not be translated unless rendered): \n          <element:span></element:span>",
+          "elementProps": [
+            {
+              "tag": "span",
+              "props": {
+                "className": "font-mono"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "app/12-usage-driven-data/components/VisibleAttrFromObject.tsx": {
+      "scopes": {
+        "program/body0/declaration/body/body0/declarations0/init/properties0_obj_imageAlt": {
+          "type": "text",
+          "hash": "2af077e93468b3fb9a929692fb0833ac",
+          "context": "Object literal prop used in UI: ui.imageAlt",
+          "skip": false,
+          "overrides": {},
+          "content": "Globe icon"
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties1_obj_inputPlaceholder": {
+          "type": "text",
+          "hash": "fd2f820569d83784238e1027897b463e",
+          "context": "Object literal prop used in UI: ui.inputPlaceholder",
+          "skip": false,
+          "overrides": {},
+          "content": "Enter your name"
+        },
+        "program/body0/declaration/body/body0/declarations0/init/properties2_obj_tooltipTitle": {
+          "type": "text",
+          "hash": "67a19231eb77a61f87b091e99909e215",
+          "context": "Object literal prop used in UI: ui.tooltipTitle",
+          "skip": false,
+          "overrides": {},
+          "content": "This title attribute is visible on hover"
+        },
+        "program/body0/declaration/body/body1/argument/children1/children1": {
+          "type": "element",
+          "hash": "3160699dcdc99464b69ee4a7589d1d5b",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "<img alt={ui.imageAlt} src={ui.src} />\n          <element:br></element:br>\n          <input placeholder={ui.inputPlaceholder} />\n          <element:br></element:br>\n          <a href={ui.href} title={ui.tooltipTitle}>Link</a>",
+          "elementProps": [
+            {
+              "tag": "br",
+              "props": {}
+            },
+            {
+              "tag": "br",
+              "props": {}
+            }
+          ]
+        },
+        "program/body0/declaration/body/body1/argument/children3/children1/children3": {
+          "type": "element",
+          "hash": "97e7c9a7d06eac006a28bf05467fcc8b",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "Link"
+        },
+        "program/body0/declaration/body/body1/argument/children3/children3": {
+          "type": "element",
+          "hash": "ed08e22346b8ac31969c1b909f38bdb7",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "href/src are NOT translated by default: \n          <element:span></element:span> · \n          <element:span></element:span>",
+          "elementProps": [
+            {
+              "tag": "span",
+              "props": {
+                "className": "font-mono"
+              }
+            },
+            {
+              "tag": "span",
+              "props": {
+                "className": "font-mono"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "app/12-usage-driven-data/page.tsx": {
+      "scopes": {
+        "program/body4/declaration/body/body0/argument/children1/children1": {
+          "type": "element",
+          "hash": "89ea0178a75bbfcbf1bdd4c662d38c97",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "12. Usage-driven Data (Arrays & Objects)"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children1/children1": {
+          "type": "element",
+          "hash": "29e3686d31be3960da63e4af72867fb5",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "12.1 Object property rendered in JSX"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children3/children1": {
+          "type": "element",
+          "hash": "5f2b251f8bf8b1d39ceac30fa9b35782",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "12.2 Array indexing rendered in JSX"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children5/children1": {
+          "type": "element",
+          "hash": "2120e8b10dd169d875a08961ca05ca2c",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "12.3 Array of objects rendered in map()"
+        },
+        "program/body4/declaration/body/body0/argument/children1/children3/children7/children1": {
+          "type": "element",
+          "hash": "476809ad3d3d0a1d5f265014e0393c2f",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "12.4 Visible attributes from objects (translated), href/src (not)"
+        }
+      }
+    },
     "app/2-expressions/components/ConditionalExpression.tsx": {
       "scopes": {
         "program/body1/declaration/body/body1/argument/children1/children1": {
@@ -3218,6 +3504,22 @@
           "skip": false,
           "overrides": {},
           "content": "Portals, Suspense fallback, Error Boundary"
+        },
+        "program/body1/declaration/body/body0/argument/children1/children3/children21/children1": {
+          "type": "element",
+          "hash": "c2fba88057ab4b65a11b200417b16bec",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "12. Usage-driven Data"
+        },
+        "program/body1/declaration/body/body0/argument/children1/children3/children21/children3": {
+          "type": "element",
+          "hash": "75f365ce898831fae6f283a3f4a0cd85",
+          "context": "",
+          "skip": false,
+          "overrides": {},
+          "content": "Arrays/objects are extracted when actually rendered in JSX; href/src\n              are not translated by default"
         },
         "program/body1/declaration/body/body0/argument/children1/children5/children1": {
           "type": "element",

@@ -554,6 +554,604 @@ class Parser {
                             .set(funcName, { cases, defaultReturn });
                     },
                 });
+                // Pass 1.5: Opt-in extraction for object/array literals (non-JSX).
+                //
+                // This intentionally does NOTHING unless the developer opts in with a leading comment.
+                // Supported directives (line or block comment):
+                // - @algb-translate-obj
+                // - @algb-translate-obj-[title,label,header,placeholder,description]
+                // - @algb-translate-arr
+                //
+                // Notes:
+                // - We only extract literals that are inside a function/component so the Injector can safely
+                //   rewrite them to `t(...)` (from `useTranslation()`).
+                // - We support nested objects/arrays by walking the initializer subtree when opted in.
+                const DEFAULT_OBJECT_LITERAL_KEYS = new Set([
+                    'title',
+                    'label',
+                    'header',
+                    'placeholder',
+                    'description',
+                ]);
+                const parseTranslateObjKeysFromComment = (commentText) => {
+                    const trimmed = commentText.trim();
+                    const listMatch = trimmed.match(/@algb-translate-obj-\[([^\]]+)\]/);
+                    if (listMatch) {
+                        const keys = listMatch[1]
+                            .split(',')
+                            .map((k) => k.trim())
+                            .filter(Boolean);
+                        return keys.length > 0 ? new Set(keys) : new Set();
+                    }
+                    if (trimmed.includes('@algb-translate-obj')) {
+                        return new Set(DEFAULT_OBJECT_LITERAL_KEYS);
+                    }
+                    return null;
+                };
+                const hasTranslateArrDirective = (commentText) => {
+                    return commentText.trim().includes('@algb-translate-arr');
+                };
+                const readCommentValues = (node) => {
+                    const buckets = [
+                        ...(node?.leadingComments ?? []),
+                        ...(node?.innerComments ?? []),
+                        ...(node?.trailingComments ?? []),
+                    ];
+                    const values = [];
+                    for (const c of buckets) {
+                        const comment = c;
+                        if (!comment || typeof comment.value !== 'string')
+                            continue;
+                        values.push(comment.value);
+                    }
+                    return values;
+                };
+                const getLiteralDirectives = (path) => {
+                    const objKeys = new Set();
+                    let sawObjDirective = false;
+                    let translateArrayElements = false;
+                    const nodesToCheck = [
+                        path?.node,
+                        path?.parentPath?.node,
+                        path?.parentPath?.parentPath?.node,
+                    ].filter(Boolean);
+                    for (const node of nodesToCheck) {
+                        for (const text of readCommentValues(node)) {
+                            if (hasTranslateArrDirective(text))
+                                translateArrayElements = true;
+                            const keys = parseTranslateObjKeysFromComment(text);
+                            if (keys) {
+                                sawObjDirective = true;
+                                for (const k of keys)
+                                    objKeys.add(k);
+                            }
+                        }
+                    }
+                    return {
+                        translateArrayElements,
+                        objectKeys: sawObjDirective ? objKeys : null,
+                    };
+                };
+                const extractStaticTextFromExpression = (expr) => {
+                    if (t.isStringLiteral(expr))
+                        return expr.value;
+                    if (t.isTemplateLiteral(expr) && expr.expressions.length === 0) {
+                        const text = expr.quasis
+                            .map((q) => q.value.cooked ?? q.value.raw ?? '')
+                            .join('');
+                        return text;
+                    }
+                    return null;
+                };
+                const getEnclosingFunctionPath = (path) => {
+                    const fnPath = path.findParent((p) => {
+                        return (p.isFunctionDeclaration() ||
+                            p.isArrowFunctionExpression() ||
+                            p.isFunctionExpression() ||
+                            (p.isVariableDeclarator() &&
+                                p.node.init &&
+                                (t.isArrowFunctionExpression(p.node.init) ||
+                                    t.isFunctionExpression(p.node.init))));
+                    });
+                    return fnPath || null;
+                };
+                traverse(ast, {
+                    VariableDeclarator(path) {
+                        const init = path.node.init;
+                        if (!init)
+                            return;
+                        const directives = getLiteralDirectives(path);
+                        if (!directives.translateArrayElements && !directives.objectKeys) {
+                            return;
+                        }
+                        // Only translate literals inside functions/components (Injector can provide t()).
+                        const enclosingFn = getEnclosingFunctionPath(path);
+                        if (!enclosingFn)
+                            return;
+                        const declScopePath = (0, utils_1.getRelativeScopePath)(path.getPathLocation());
+                        // Opt-in: translate direct string-array literal elements.
+                        if (directives.translateArrayElements &&
+                            t.isArrayExpression(init) &&
+                            Array.isArray(init.elements)) {
+                            for (let i = 0; i < init.elements.length; i++) {
+                                const el = init.elements[i];
+                                if (!el || !t.isExpression(el))
+                                    continue;
+                                const content = extractStaticTextFromExpression(el);
+                                if (!content || !content.trim())
+                                    continue;
+                                const key = `${declScopePath}_arr_${i}`;
+                                if (fileScopes[key])
+                                    continue;
+                                const hash = crypto_1.default
+                                    .createHash('md5')
+                                    .update(content)
+                                    .digest('hex');
+                                fileScopes[key] = {
+                                    type: 'text',
+                                    hash,
+                                    context: `Opt-in array literal element (#${i})`,
+                                    skip: false,
+                                    overrides: {},
+                                    content,
+                                };
+                            }
+                        }
+                        // Opt-in: translate object-like literals by key allowlist (supports nested objects/arrays).
+                        if (directives.objectKeys) {
+                            const initPath = path.get('init');
+                            initPath.traverse({
+                                ObjectProperty(propPath) {
+                                    const keyNode = propPath.node.key;
+                                    const propName = t.isIdentifier(keyNode)
+                                        ? keyNode.name
+                                        : t.isStringLiteral(keyNode)
+                                            ? keyNode.value
+                                            : null;
+                                    if (!propName)
+                                        return;
+                                    if (!directives.objectKeys.has(propName))
+                                        return;
+                                    const valueNode = propPath.node.value;
+                                    const baseScope = (0, utils_1.getRelativeScopePath)(propPath.getPathLocation());
+                                    // Case 1: string / static template
+                                    const text = extractStaticTextFromExpression(valueNode);
+                                    if (text && text.trim()) {
+                                        const key = `${baseScope}_obj_${propName}`;
+                                        if (!fileScopes[key]) {
+                                            const hash = crypto_1.default
+                                                .createHash('md5')
+                                                .update(text)
+                                                .digest('hex');
+                                            fileScopes[key] = {
+                                                type: 'text',
+                                                hash,
+                                                context: `Opt-in object literal: ${propName}`,
+                                                skip: false,
+                                                overrides: {},
+                                                content: text,
+                                            };
+                                        }
+                                        return;
+                                    }
+                                    // Case 2: array of strings / static templates
+                                    if (t.isArrayExpression(valueNode)) {
+                                        const elements = valueNode.elements || [];
+                                        for (let i = 0; i < elements.length; i++) {
+                                            const el = elements[i];
+                                            if (!el || !t.isExpression(el))
+                                                continue;
+                                            const content = extractStaticTextFromExpression(el);
+                                            if (!content || !content.trim())
+                                                continue;
+                                            const key = `${baseScope}_obj_${propName}_arr_${i}`;
+                                            if (fileScopes[key])
+                                                continue;
+                                            const hash = crypto_1.default
+                                                .createHash('md5')
+                                                .update(content)
+                                                .digest('hex');
+                                            fileScopes[key] = {
+                                                type: 'text',
+                                                hash,
+                                                context: `Opt-in object literal array: ${propName}[${i}]`,
+                                                skip: false,
+                                                overrides: {},
+                                                content,
+                                            };
+                                        }
+                                    }
+                                },
+                            });
+                        }
+                    },
+                });
+                // Pass 1.6: Usage-driven extraction for object/array literals shown in UI.
+                //
+                // Goal: if a string is ultimately rendered to the user (JSX children, or a visible attribute),
+                // we trace it back to its static declaration (object/array literals inside the same function)
+                // and extract ONLY those literals.
+                //
+                // We intentionally do NOT try to resolve cross-file imports in this pass.
+                //
+                // Supported origins:
+                // - const obj = { title: "..." }; render: {obj.title}
+                // - const arr = ["A","B"]; render: {arr[0]} or {arr.map(...)}
+                // - const cities = [{ name:"NY", country:"USA", mapLocation:"..." }]; render: {cities.map(c=> <a href={c.mapLocation}>{c.name}</a>)}
+                //
+                // Rules:
+                // - Only declarations INSIDE a function/component are eligible (Injector can provide `t()`).
+                // - We translate JSX children content by default.
+                // - For attributes, we only translate a conservative allowlist (e.g. title/placeholder/alt/aria-label).
+                const VISIBLE_ATTRIBUTE_ALLOWLIST = new Set([
+                    'title',
+                    'placeholder',
+                    'alt',
+                    'aria-label',
+                    'aria-describedby',
+                    'aria-placeholder',
+                ]);
+                const NON_TRANSLATABLE_ATTRIBUTES = new Set([
+                    'href',
+                    'src',
+                    'id',
+                    'className',
+                    'htmlFor',
+                    'key',
+                    'ref',
+                ]);
+                // Index of object literal properties by varName.propName in a given function scope.
+                const objectLiteralPropIndex = new Map();
+                // Index of array literal string elements by varName[index] in a given function scope.
+                const arrayLiteralElementIndex = new Map();
+                // Index of array-of-objects string properties by varName.propName -> list per element.
+                const arrayOfObjectsPropIndex = new Map();
+                const upsertNestedMap = (outer, k1, k2, factory) => {
+                    let inner = outer.get(k1);
+                    if (!inner) {
+                        inner = new Map();
+                        outer.set(k1, inner);
+                    }
+                    let v = inner.get(k2);
+                    if (!v) {
+                        v = factory();
+                        inner.set(k2, v);
+                    }
+                    return v;
+                };
+                const ensureScopeFileEntry = (key, content, context) => {
+                    if (fileScopes[key])
+                        return;
+                    if (!content.trim())
+                        return;
+                    // Do not translate obvious URLs/paths by default.
+                    // If the user truly wants these localized, they should opt-in explicitly.
+                    const looksLikeUrlOrPath = (() => {
+                        const v = content.trim();
+                        if (!v)
+                            return true;
+                        if (/^[a-zA-Z]+:\/\//.test(v))
+                            return true; // http://, https://, etc
+                        if (v.startsWith('mailto:') || v.startsWith('tel:'))
+                            return true;
+                        if (v.startsWith('/') ||
+                            v.startsWith('./') ||
+                            v.startsWith('../')) {
+                            return true;
+                        }
+                        if (v.includes('://'))
+                            return true;
+                        // asset-ish filenames
+                        if (/\.(svg|png|jpe?g|webp|gif|ico)(\?.*)?$/i.test(v))
+                            return true;
+                        return false;
+                    })();
+                    if (looksLikeUrlOrPath)
+                        return;
+                    const hash = crypto_1.default.createHash('md5').update(content).digest('hex');
+                    fileScopes[key] = {
+                        type: 'text',
+                        hash,
+                        context,
+                        skip: false,
+                        overrides: {},
+                        content,
+                    };
+                };
+                const getEnclosingFunctionLocation = (path) => {
+                    const fn = path.findParent((p) => {
+                        return (p.isFunctionDeclaration() ||
+                            p.isArrowFunctionExpression() ||
+                            p.isFunctionExpression() ||
+                            (p.isVariableDeclarator() &&
+                                p.node.init &&
+                                (t.isArrowFunctionExpression(p.node.init) ||
+                                    t.isFunctionExpression(p.node.init))));
+                    });
+                    return fn ? fn.getPathLocation() : null;
+                };
+                const staticTextOf = (expr) => {
+                    if (t.isStringLiteral(expr))
+                        return expr.value;
+                    if (t.isTemplateLiteral(expr) && expr.expressions.length === 0) {
+                        return expr.quasis
+                            .map((q) => q.value.cooked ?? q.value.raw ?? '')
+                            .join('');
+                    }
+                    return null;
+                };
+                // Build indices for static literals inside each function scope.
+                traverse(ast, {
+                    VariableDeclarator(path) {
+                        if (!t.isIdentifier(path.node.id))
+                            return;
+                        const varName = path.node.id.name;
+                        const init = path.node.init;
+                        if (!init)
+                            return;
+                        const functionLocation = getEnclosingFunctionLocation(path);
+                        if (!functionLocation)
+                            return; // only within functions/components
+                        // Index: object literal properties
+                        if (t.isObjectExpression(init)) {
+                            const byVar = upsertNestedMap(objectLiteralPropIndex, functionLocation, varName, () => new Map());
+                            const initPath = path.get('init');
+                            initPath.traverse({
+                                ObjectProperty(propPath) {
+                                    const keyNode = propPath.node.key;
+                                    const propName = t.isIdentifier(keyNode)
+                                        ? keyNode.name
+                                        : t.isStringLiteral(keyNode)
+                                            ? keyNode.value
+                                            : null;
+                                    if (!propName)
+                                        return;
+                                    const valueNode = propPath.node.value;
+                                    const text = staticTextOf(valueNode);
+                                    if (!text)
+                                        return;
+                                    const baseScope = (0, utils_1.getRelativeScopePath)(propPath.getPathLocation());
+                                    const scopeKey = `${baseScope}_obj_${propName}`;
+                                    byVar.set(propName, { scopeKey, content: text });
+                                },
+                            });
+                        }
+                        // Index: array literal of strings and array-of-objects (string properties)
+                        if (t.isArrayExpression(init)) {
+                            const arrIndex = upsertNestedMap(arrayLiteralElementIndex, functionLocation, varName, () => new Map());
+                            const arrObjIndex = upsertNestedMap(arrayOfObjectsPropIndex, functionLocation, varName, () => new Map());
+                            const declScopePath = (0, utils_1.getRelativeScopePath)(path.getPathLocation());
+                            const initPath = path.get('init');
+                            const elementPaths = initPath.get('elements') || [];
+                            elementPaths.forEach((elPath, index) => {
+                                if (!elPath?.node)
+                                    return;
+                                // Element: string literal / static template
+                                if (t.isExpression(elPath.node)) {
+                                    const text = staticTextOf(elPath.node);
+                                    if (text) {
+                                        arrIndex.set(index, {
+                                            scopeKey: `${declScopePath}_arr_${index}`,
+                                            content: text,
+                                        });
+                                        return;
+                                    }
+                                }
+                                // Element: object expression with string props
+                                if (t.isObjectExpression(elPath.node)) {
+                                    elPath.traverse({
+                                        ObjectProperty(propPath) {
+                                            const keyNode = propPath.node.key;
+                                            const propName = t.isIdentifier(keyNode)
+                                                ? keyNode.name
+                                                : t.isStringLiteral(keyNode)
+                                                    ? keyNode.value
+                                                    : null;
+                                            if (!propName)
+                                                return;
+                                            const valueNode = propPath.node.value;
+                                            const text = staticTextOf(valueNode);
+                                            if (!text)
+                                                return;
+                                            const baseScope = (0, utils_1.getRelativeScopePath)(propPath.getPathLocation());
+                                            const scopeKey = `${baseScope}_obj_${propName}`;
+                                            const list = arrObjIndex.get(propName) || [];
+                                            list.push({ scopeKey, content: text });
+                                            arrObjIndex.set(propName, list);
+                                        },
+                                    });
+                                }
+                            });
+                        }
+                    },
+                });
+                const findJsxAttributeNameForExpression = (exprPath) => {
+                    // Robustly detect attribute context by walking up to JSXAttribute.
+                    // (The direct parent chain can vary in traversal contexts.)
+                    const attrPath = exprPath.findParent((p) => p?.isJSXAttribute ? p.isJSXAttribute() : false);
+                    if (!attrPath || !attrPath.node)
+                        return null;
+                    const nameNode = attrPath.node.name;
+                    return t.isJSXIdentifier(nameNode) ? nameNode.name : null;
+                };
+                const shouldTranslateInAttribute = (attrName) => {
+                    if (!attrName)
+                        return false;
+                    if (NON_TRANSLATABLE_ATTRIBUTES.has(attrName))
+                        return false;
+                    // data-* and event handlers should never be translated
+                    if (attrName.startsWith('data-') || attrName.startsWith('on')) {
+                        return false;
+                    }
+                    return VISIBLE_ATTRIBUTE_ALLOWLIST.has(attrName);
+                };
+                // During JSX processing, when we see something rendered, we extract its origin literals.
+                traverse(ast, {
+                    JSXElement(path) {
+                        const functionPath = path.findParent((p) => {
+                            return (p.isFunctionDeclaration() ||
+                                p.isArrowFunctionExpression() ||
+                                p.isFunctionExpression() ||
+                                (p.isVariableDeclarator() &&
+                                    p.node.init &&
+                                    (t.isArrowFunctionExpression(p.node.init) ||
+                                        t.isFunctionExpression(p.node.init))));
+                        });
+                        const functionLocation = functionPath
+                            ? functionPath.getPathLocation()
+                            : null;
+                        if (!functionLocation)
+                            return;
+                        // 1) Direct member expressions rendered in JSX: {obj.title}, {arr[0]}, etc.
+                        path.traverse({
+                            JSXExpressionContainer(exprContainerPath) {
+                                const exprPath = exprContainerPath.get('expression');
+                                if (!exprPath)
+                                    return;
+                                const exprNode = exprPath.node;
+                                // Determine if this expression is in an attribute value.
+                                const attrName = findJsxAttributeNameForExpression(exprPath);
+                                const isAttrContext = typeof attrName === 'string';
+                                if (isAttrContext && attrName) {
+                                    if (!shouldTranslateInAttribute(attrName))
+                                        return;
+                                }
+                                // MemberExpression: obj.prop or arr[0]
+                                if (t.isMemberExpression(exprNode)) {
+                                    // Case: arr[0]
+                                    if (exprNode.computed &&
+                                        t.isIdentifier(exprNode.object) &&
+                                        t.isNumericLiteral(exprNode.property)) {
+                                        const arrName = exprNode.object.name;
+                                        const idx = exprNode.property.value;
+                                        const arrMap = arrayLiteralElementIndex
+                                            .get(functionLocation)
+                                            ?.get(arrName);
+                                        const origin = arrMap?.get(idx);
+                                        if (origin) {
+                                            ensureScopeFileEntry(origin.scopeKey, origin.content, `Array literal element used in UI: ${arrName}[${idx}]`);
+                                        }
+                                        return;
+                                    }
+                                    // Case: obj.prop
+                                    if (!exprNode.computed &&
+                                        t.isIdentifier(exprNode.object) &&
+                                        t.isIdentifier(exprNode.property)) {
+                                        const objName = exprNode.object.name;
+                                        const propName = exprNode.property.name;
+                                        const objMap = objectLiteralPropIndex
+                                            .get(functionLocation)
+                                            ?.get(objName);
+                                        const origin = objMap?.get(propName);
+                                        if (origin) {
+                                            ensureScopeFileEntry(origin.scopeKey, origin.content, `Object literal prop used in UI: ${objName}.${propName}`);
+                                        }
+                                    }
+                                }
+                            },
+                        });
+                        // 2) map() over array-of-objects rendered in JSX:
+                        //    cities.map((city) => <a href={city.mapLocation}>{city.name}</a>)
+                        path.traverse({
+                            CallExpression(callPath) {
+                                const callee = callPath.node.callee;
+                                if (!t.isMemberExpression(callee))
+                                    return;
+                                if (!t.isIdentifier(callee.property))
+                                    return;
+                                if (callee.property.name !== 'map')
+                                    return;
+                                // Only when this call is rendered via JSXExpressionContainer
+                                const parent = callPath.parentPath;
+                                if (!parent || !parent.isJSXExpressionContainer())
+                                    return;
+                                const rootName = (() => {
+                                    const obj = callee.object;
+                                    if (t.isIdentifier(obj))
+                                        return obj.name;
+                                    if (t.isMemberExpression(obj)) {
+                                        // cities.filtered.map(...) => resolve base identifier
+                                        let cur = obj;
+                                        while (cur && t.isMemberExpression(cur))
+                                            cur = cur.object;
+                                        return t.isIdentifier(cur) ? cur.name : null;
+                                    }
+                                    return null;
+                                })();
+                                if (!rootName)
+                                    return;
+                                const cb = callPath.get('arguments.0');
+                                if (!cb)
+                                    return;
+                                if (!cb.isArrowFunctionExpression() &&
+                                    !cb.isFunctionExpression()) {
+                                    return;
+                                }
+                                const params = cb.node.params || [];
+                                if (params.length === 0)
+                                    return;
+                                if (!t.isIdentifier(params[0]))
+                                    return;
+                                const itemName = params[0].name;
+                                const propsUsedInText = new Set();
+                                const propsUsedInVisibleAttrs = new Set();
+                                const bodyPath = cb.get('body');
+                                if (!bodyPath)
+                                    return;
+                                // Collect member expressions on the item param.
+                                bodyPath.traverse({
+                                    JSXExpressionContainer(innerExprContainer) {
+                                        const innerExprPath = innerExprContainer.get('expression');
+                                        if (!innerExprPath)
+                                            return;
+                                        const innerAttrName = findJsxAttributeNameForExpression(innerExprPath);
+                                        const isAttr = typeof innerAttrName === 'string';
+                                        const allowAttr = isAttr && innerAttrName
+                                            ? shouldTranslateInAttribute(innerAttrName)
+                                            : false;
+                                        const node = innerExprPath.node;
+                                        if (t.isMemberExpression(node) &&
+                                            !node.computed &&
+                                            t.isIdentifier(node.object) &&
+                                            node.object.name === itemName &&
+                                            t.isIdentifier(node.property)) {
+                                            const prop = node.property.name;
+                                            if (isAttr && innerAttrName) {
+                                                // Attribute context: translate only allowlisted visible attrs.
+                                                if (allowAttr)
+                                                    propsUsedInVisibleAttrs.add(prop);
+                                                return;
+                                            }
+                                            // Text/children context: translate by default.
+                                            propsUsedInText.add(prop);
+                                        }
+                                    },
+                                });
+                                if (propsUsedInText.size === 0 &&
+                                    propsUsedInVisibleAttrs.size === 0) {
+                                    return;
+                                }
+                                const arrPropIndex = arrayOfObjectsPropIndex
+                                    .get(functionLocation)
+                                    ?.get(rootName);
+                                if (!arrPropIndex)
+                                    return;
+                                for (const propName of propsUsedInText) {
+                                    const origins = arrPropIndex.get(propName) || [];
+                                    for (const origin of origins) {
+                                        ensureScopeFileEntry(origin.scopeKey, origin.content, `Array-of-objects prop used in UI: ${rootName}[*].${propName}`);
+                                    }
+                                }
+                                for (const propName of propsUsedInVisibleAttrs) {
+                                    const origins = arrPropIndex.get(propName) || [];
+                                    for (const origin of origins) {
+                                        ensureScopeFileEntry(origin.scopeKey, origin.content, `Array-of-objects prop used in visible attr: ${rootName}[*].${propName}`);
+                                    }
+                                }
+                            },
+                        });
+                    },
+                });
                 // Second pass: Process JSXElements with variable scope context
                 traverse(ast, {
                     JSXElement(path) {
@@ -781,12 +1379,22 @@ class Parser {
                             parentPath = parentPath.parentPath;
                         }
                         // Check if element has translatable content
+                        // IMPORTANT:
+                        // MemberExpression children like {city.name} are usage-driven (we translate at the origin),
+                        // and extractExpressionContent() intentionally returns '' for them.
+                        // If we extracted the whole JSXElement anyway, we'd erase runtime output (e.g. render "()" only).
+                        // So: if an element contains any MemberExpression in its children, skip element-level extraction.
+                        let hasMemberExpressionChild = false;
                         const hasTranslatableContent = path.node.children.some((child) => {
                             if (t.isJSXText(child) && child.value.trim()) {
                                 return true;
                             }
                             if (t.isJSXExpressionContainer(child)) {
                                 const expr = child.expression;
+                                if (t.isMemberExpression(expr)) {
+                                    hasMemberExpressionChild = true;
+                                    return false;
+                                }
                                 // Check for translatable expressions
                                 if (t.isStringLiteral(expr) ||
                                     t.isTemplateLiteral(expr) ||
@@ -800,7 +1408,7 @@ class Parser {
                             }
                             return false;
                         });
-                        if (hasTranslatableContent) {
+                        if (hasTranslatableContent && !hasMemberExpressionChild) {
                             const fullScopePath = path.getPathLocation();
                             const relativeScopePath = (0, utils_1.getRelativeScopePath)(fullScopePath);
                             const buildResult = (0, utils_1.buildContent)(path.node, variableScope, functionReturnScope);

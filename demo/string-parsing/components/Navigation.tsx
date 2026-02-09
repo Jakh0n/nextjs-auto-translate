@@ -14,6 +14,7 @@ const scenarios = [
   { path: '/8-nextjs-specifics', label: '8. Next.js Specifics' },
   { path: '/9-forms', label: '9. Forms' },
   { path: '/10-special-cases', label: '10. Special Cases' },
+  { path: '/12-usage-driven-data', label: '12. Usage-driven Data' },
 ];
 
 export default function Navigation() {

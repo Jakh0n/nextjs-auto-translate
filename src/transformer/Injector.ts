@@ -627,7 +627,10 @@ export function transformProject(
 
         let didReplace = false;
         init.elements = init.elements.map((el, index) => {
-          if (!el || !t.isStringLiteral(el)) return el;
+          if (!el) return el;
+          const isStaticTemplate =
+            t.isTemplateLiteral(el) && el.expressions.length === 0;
+          if (!t.isStringLiteral(el) && !isStaticTemplate) return el;
           const key = `${declScopePath}_arr_${index}`;
           if (!fileScopes[key]) return el;
 
@@ -655,6 +658,94 @@ export function transformProject(
           componentsNeedingHook.add(functionPath.getPathLocation());
         }
 
+        changed = true;
+      },
+    });
+
+    // Pass 0b: Translate opt-in object-literal string properties extracted by the Parser.
+    // The Parser emits scope keys:
+    //   {objectPropertyScopePath}_obj_{propName}
+    //   {objectPropertyScopePath}_obj_{propName}_arr_{index}
+    // We rewrite those string literals to:
+    //   t(`${relativePath}::{key}`)
+    traverse(ast, {
+      ObjectProperty(path: NodePath<t.ObjectProperty>) {
+        const keyNode = path.node.key;
+        const propName = t.isIdentifier(keyNode)
+          ? keyNode.name
+          : t.isStringLiteral(keyNode)
+            ? keyNode.value
+            : null;
+        if (!propName) return;
+
+        // This requires t() which comes from the useTranslation() hook.
+        const functionPath = path.findParent((p: any) => {
+          return (
+            p.isFunctionDeclaration() ||
+            p.isArrowFunctionExpression() ||
+            p.isFunctionExpression() ||
+            (p.isVariableDeclarator() &&
+              p.node.init &&
+              (t.isArrowFunctionExpression(p.node.init) ||
+                t.isFunctionExpression(p.node.init)))
+          );
+        });
+        if (!functionPath) return;
+
+        const baseScopePath = getRelativeScopePath(path.getPathLocation());
+
+        let didReplace = false;
+        const value = path.node.value;
+
+        // Case 1: string literal value
+        if (t.isStringLiteral(value)) {
+          const key = `${baseScopePath}_obj_${propName}`;
+          if (!fileScopes[key]) return;
+
+          path.node.value = t.callExpression(t.identifier('t'), [
+            t.stringLiteral(`${relativePath}::${key}`),
+          ]);
+          didReplace = true;
+        }
+
+        // Case 2: static template literal value (no expressions)
+        if (
+          !didReplace &&
+          t.isTemplateLiteral(value) &&
+          value.expressions.length === 0
+        ) {
+          const key = `${baseScopePath}_obj_${propName}`;
+          if (!fileScopes[key]) return;
+
+          path.node.value = t.callExpression(t.identifier('t'), [
+            t.stringLiteral(`${relativePath}::${key}`),
+          ]);
+          didReplace = true;
+        }
+
+        // Case 3: array literal value
+        if (!didReplace && t.isArrayExpression(value)) {
+          const elements = value.elements || [];
+          for (let i = 0; i < elements.length; i++) {
+            const el = elements[i];
+            if (!el) continue;
+            const isStaticTemplate =
+              t.isTemplateLiteral(el) && el.expressions.length === 0;
+            if (!t.isStringLiteral(el) && !isStaticTemplate) continue;
+
+            const key = `${baseScopePath}_obj_${propName}_arr_${i}`;
+            if (!fileScopes[key]) continue;
+
+            elements[i] = t.callExpression(t.identifier('t'), [
+              t.stringLiteral(`${relativePath}::${key}`),
+            ]);
+            didReplace = true;
+          }
+        }
+
+        if (!didReplace) return;
+
+        componentsNeedingHook.add(functionPath.getPathLocation());
         changed = true;
       },
     });
